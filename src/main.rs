@@ -1,6 +1,41 @@
-extern crate reqwest;
 use std::error::Error;
 use serde_json::json;
+use serde::{Serialize, Deserialize};
+
+const SOLANA_RPC: &str = "https://api.mainnet-beta.solana.com";
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Quote {
+    pub jsonrpc: String,
+    pub result: Result1,
+    pub id: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Result1 {
+    pub context: Context,
+    pub value: Value,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Context {
+    pub api_version: String,
+    pub slot: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Value {
+    pub data: Vec<String>,
+    pub executable: bool,
+    pub lamports: i64,
+    pub owner: String,
+    pub rent_epoch: i64,
+}
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -11,28 +46,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "id": 1,
         "method": "getAccountInfo",
         "params": [
-            "F65xgN7bUhaJffKhtFotQsZEgd8DLviWt59qBMA4LfC5",
+            "9oTgUFHWpaxGkemr3qHPqzQmHcaUdB6QFjFZukYT8iXx",
             {
-                "encoding": "base58"
+                "encoding": "base64"
             }
         ]
 
     });
 
 
-
-    let res = client
-        .post("https://api.devnet.solana.com")
+    let response: Quote = client
+        .post(SOLANA_RPC)
         .json(&json_body)
         .send()
-        .await
-        .expect("failed to get response")
-        .text()
-        .await
-        .expect("failed to get payload");
+        .await?
+        .json()
+        .await?;
 
-    println!("{:?}", res);
-
+    let sol_balance:f64 = response.result.value.lamports as f64 * 0.000000001;
+    println!("Sol Balance:\t{} SOL", sol_balance);
     Ok(())
 }
-
